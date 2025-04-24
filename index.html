@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor Financeiro | Moderno v1.9.21+ (Devedores)</title> <!-- Versão Atualizada -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- <link rel="icon" href="favicon.ico" type="image/x-icon"> -->
+    <style>
+        /* --- Estilos para Popups/Toasts --- */
+        .popup-container { position: fixed; bottom: 20px; right: 20px; z-index: 1070; display: flex; flex-direction: column-reverse; gap: 10px; max-width: 350px; pointer-events: none; }
+        .popup { background-color: rgba(50, 50, 50, 0.9); color: #fff; padding: 12px 18px; border-radius: 6px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); display: flex; align-items: center; opacity: 0; transform: translateY(20px); transition: opacity 0.3s ease, transform 0.3s ease; pointer-events: all; min-width: 280px; border-left: 4px solid transparent; }
+        .popup.show { opacity: 1; transform: translateY(0); }
+        .popup.hide { opacity: 0; }
+        .popup-icon { margin-right: 12px; font-size: 1.1em; flex-shrink: 0; }
+        .popup-message { flex-grow: 1; font-size: 0.9rem; line-height: 1.4; }
+        .popup-close { background: none; border: none; color: inherit; opacity: 0.6; cursor: pointer; font-size: 1.3em; padding: 0 0 0 15px; margin-left: auto; line-height: 1; flex-shrink: 0; }
+        .popup-close:hover { opacity: 1; }
+        .popup.success { background-color: rgba(40, 167, 69, 0.9); border-left-color: #1a7a32; }
+        .popup.success .popup-icon::before { content: "\f058"; font-family: "Font Awesome 6 Free"; font-weight: 900; } /* check-circle */
+        .popup.info { background-color: rgba(23, 162, 184, 0.9); border-left-color: #0f8194; }
+        .popup.info .popup-icon::before { content: "\f05a"; font-family: "Font Awesome 6 Free"; font-weight: 900; } /* info-circle */
+        .popup.warning { background-color: rgba(255, 193, 7, 0.9); border-left-color: #b88d05; color: #333; }
+        .popup.warning .popup-icon::before { content: "\f071"; font-family: "Font Awesome 6 Free"; font-weight: 900; } /* exclamation-triangle */
+        .popup.warning .popup-close { color: #333; }
+        .popup.danger { background-color: rgba(220, 53, 69, 0.9); border-left-color: #9e2131; }
+        .popup.danger .popup-icon::before { content: "\f06a"; font-family: "Font Awesome 6 Free"; font-weight: 900; } /* exclamation-circle */
+
+        /* Estilo simples para indicar elementos desabilitados por permissão */
+        .action-disabled-permission { opacity: 0.6; cursor: not-allowed !important; pointer-events: none; }
+        /* Estilo para o spinner de loading */
+        #loadingIndicator { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.7); display: flex; justify-content: center; align-items: center; z-index: 9999; backdrop-filter: blur(2px); }
+        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: var(--primary-color, #007bff); animation: spin 1s ease infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Ajuste visual para botões pequenos em listas */
+        .list-group-item .btn-sm { line-height: 1; }
+        .list-group-item .fa-xs { vertical-align: middle; }
+        /* Ajuste para botões de ajuste de saldo */
+        .balance-method-actions { margin-left: 10px; }
+        .balance-method { display: flex; align-items: center; margin-bottom: 10px; }
+        .balance-method-input { margin-left: auto; max-width: 120px; }
+
+        /* Estilo para modal de detalhes */
+        .transaction-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 15px; margin-bottom: 1.5rem; }
+        .transaction-detail-grid > div { word-wrap: break-word; }
+        .transaction-detail-grid .grid-col-span-2 { grid-column: span 2; }
+        .detail-section { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color, #eee); }
+        .detail-section:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }
+        #detailAttachment img { max-width: 150px; max-height: 100px; border: 1px solid #ccc; cursor: pointer; object-fit: cover; vertical-align: middle; }
+
+        /* Estilos para o Editor de Categorias */
+        .category-editor .modal-body { max-height: 70vh; overflow-y: auto; }
+        .category-sortable-list .list-group-item { display: flex; align-items: center; padding: 0.5rem 0.75rem; margin-bottom: 5px; border-radius: 0.25rem; background-color: var(--card-bg); border: 1px solid var(--border-color); }
+        .category-sortable-list .list-group-item.is-title { font-weight: bold; background-color: var(--table-header-bg, #e9ecef); color: var(--table-header-color, #495057); margin-top: 10px; border-bottom-width: 2px; }
+        [data-theme="dark"] .category-sortable-list .list-group-item.is-title { background-color: var(--table-header-bg, #343a40); color: var(--table-header-color, #f8f9fa); }
+        .category-sortable-list .category-item-content { flex-grow: 1; display: flex; align-items: center; }
+        .category-sortable-list .category-name-display { flex-grow: 1; cursor: pointer; padding: 2px 5px; border-radius: 3px; border: 1px solid transparent; }
+        .category-sortable-list .category-name-display:hover { background-color: rgba(0,0,0,0.05); }
+        [data-theme="dark"] .category-sortable-list .category-name-display:hover { background-color: rgba(255,255,255,0.1); }
+        .category-sortable-list .category-name-input { flex-grow: 1; margin-right: 5px; }
+        .category-sortable-list .category-actions { margin-left: auto; display: flex; gap: 5px; }
+        .category-sortable-list .category-actions .btn { padding: 0.1rem 0.4rem; font-size: 0.8em; line-height: 1; }
+        .category-sortable-list .drag-handle { cursor: grab; color: var(--text-muted); margin-right: 10px; font-size: 1.1em; opacity: 0.6; }
+        .category-sortable-list .drag-handle:hover { opacity: 1; }
+        .category-sortable-list .is-default .drag-handle,
+        .category-sortable-list .is-default .delete-category-item,
+        .category-sortable-list .is-default .edit-category-item { opacity: 0.3; pointer-events: none; }
+        .category-sortable-list .is-default .category-name-display:hover { background-color: transparent; cursor: default; }
+        /* Estilos SortableJS */
+        .sortable-ghost { opacity: 0.4; background-color: var(--primary-color-light) !important; }
+        .sortable-drag { opacity: 0.9 !important; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+
+         /* Estilos para o Visualizador de Fatura */
+        .invoice-viewer .modal-body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9rem; line-height: 1.5; color: #333; }
+        .invoice-viewer .invoice-header h2 { color: var(--primary-color, #0d6efd); margin-bottom: 0.5rem; }
+        .invoice-viewer .invoice-client-info { border-left: 3px solid var(--primary-color, #0d6efd); }
+        .invoice-items-table th { font-weight: 600; }
+        .invoice-items-table tfoot { border-top: 2px solid #dee2e6; }
+        .invoice-notes { border-top: 1px dashed #ccc; padding-top: 1rem; margin-top: 2rem; }
+        /* Estilos para Impressão */
+        @media print {
+            body * { visibility: hidden; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            #invoiceViewModal, #invoiceViewModal * { visibility: visible; }
+            #invoiceViewModal { position: absolute; left: 0; top: 0; width: 100%; height: auto; margin: 0; padding: 0; border: none; box-shadow: none; overflow: visible !important; }
+            #invoiceViewModal .modal { width: 100%; max-width: 100%; box-shadow: none; border: none; display: block !important; margin: 0; padding: 1cm; font-size: 10pt; background-color: #fff !important; color: #000 !important; }
+            #invoiceViewModal .modal-header, #invoiceViewModal .modal-footer { display: none; }
+            #invoiceViewModal .modal-body { padding: 0; overflow: visible !important; }
+            #invoiceViewModal .bg-light { background-color: #f8f9fa !important; }
+            #invoiceViewModal .table-light th, #invoiceViewModal .table-light tfoot { background-color: #f8f9fa !important; }
+            #invoiceViewModal .badge { border: 1px solid #ccc; }
+            #invoiceViewModal img { max-width: 100% !important; height: auto; }
+            #invoiceViewModal .table-responsive { overflow-x: visible !important; }
+            #invoiceViewModal .table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+            #invoiceViewModal .table th, #invoiceViewModal .table td { border: 1px solid #dee2e6 !important; }
+            .invoice-header, .invoice-client-info, .invoice-items-table, .invoice-notes { page-break-inside: avoid; }
+            .invoice-items-table tbody tr { page-break-inside: avoid; }
+        }
+
+        /* --- Z-Index dos Modais --- */
+        /* Base para todos os overlays */
+        .modal-overlay { z-index: 1050; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); display: none; align-items: center; justify-content: center; overflow-y: auto; padding: 20px; }
+        .modal-overlay.active { display: flex; }
+        /* Z-index MAIOR para Alertas e Confirmações */
+        #alertModal, #confirmModal { z-index: 1060 !important; }
+        /* Z-index ainda MAIOR para o container de popups/toasts */
+        .popup-container { z-index: 1070 !important; }
+        /* Z-index para o loading indicator (opcional, mas bom garantir) */
+        #loadingIndicator { z-index: 9999 !important; }
+        /* --- Outros Estilos --- */
+         #confirmModal .modal { max-width: 400px; }
+         /* Estilo para botões de rádio no modal de fatura */
+         .recipient-type-selector .btn { flex-grow: 1; }
+
+        /* ==== NOVOS ESTILOS PARA DEVEDORES ==== */
+        .debtor-card .card-title { font-size: 1.1rem; }
+        .debtor-card img { border: 1px solid var(--border-color); }
+        .debtor-total-owed { font-weight: bold; font-size: 1.1em; }
+        .debtor-photo-upload { position: relative; overflow: hidden; background-color: var(--bs-gray-200); }
+        [data-theme="dark"] .debtor-photo-upload { background-color: var(--bs-gray-700); border-color: var(--bs-gray-600); }
+        .debtor-photo-upload i { transition: opacity 0.2s ease; }
+        .debtor-photo-upload img { transition: opacity 0.2s ease; }
+        .debtor-photo-upload:hover i { opacity: 0.7; }
+        .debt-list-item h6 { max-width: 70%; }
+        .debt-item-actions .btn { font-size: 0.75rem; padding: 0.15rem 0.4rem; }
+        .debt-list-item .badge { font-size: 0.7em; }
+        img[src="img/user_placeholder.png"] { /* Estilo opcional para placeholder */ }
+        #debtorPaymentHistoryModal .modal-body { background-color: var(--body-bg-secondary); }
+        #debtorPaymentHistoryList .list-group-item { background-color: var(--card-bg); border: 1px solid var(--border-color); margin-bottom: 0.5rem; border-radius: 0.25rem; }
+        .payment-history-item .text-success { color: var(--success-color) !important; } /* Garante cor de sucesso */
+        /* Estilo para card de devedor ocupar altura total na coluna flex */
+        #debtorListContainer .col-md-6, #debtorListContainer .col-lg-4 { display: flex; }
+
+    </style>
+</head>
+
+<body data-theme="light">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2 class="sidebar-title"><i class="fas fa-piggy-bank"></i> Finanças</h2>
+            <button class="close-sidebar" title="Fechar Menu">×</button>
+        </div>
+        <div class="sidebar-search">
+            <div class="search-input-wrapper">
+                <i class="fas fa-search"></i>
+                <input type="text" id="sidebarSearchInput" placeholder="Buscar Transação...">
+            </div>
+        </div>
+        <div class="sidebar-menu">
+            <!-- Itens Base com data-permission -->
+            <div class="menu-item active" data-section="dashboard" data-permission="leitura"> <i class="fas fa-tachometer-alt fa-fw"></i> <span>Dashboard</span> </div>
+            <div class="menu-item" data-section="transactions" data-permission="leitura"> <i class="fas fa-exchange-alt fa-fw"></i> <span>Transações</span> </div>
+            <div class="menu-item" data-section="scheduled" data-permission="vendas"> <i class="fas fa-calendar-alt fa-fw"></i> <span>Agendamentos</span> </div>
+            <div class="menu-item" data-section="reports" data-permission="financeiro"> <i class="fas fa-chart-pie fa-fw"></i> <span>Relatórios</span> </div>
+            <div class="menu-item" data-section="goals" data-permission="leitura"> <i class="fas fa-bullseye fa-fw"></i> <span>Metas</span> </div>
+            <div class="menu-item" data-section="notes" data-permission="leitura"> <i class="fas fa-sticky-note fa-fw"></i> <span>Notas</span> </div>
+            <!-- Itens Pro com data-permission -->
+            <div class="menu-item pro-feature" data-section="recurring" data-permission="financeiro" style="display: none;"> <i class="fas fa-sync-alt fa-fw"></i> <span>Recorrências</span> </div>
+            <!-- Itens Business com data-permission -->
+            <div class="menu-item business-feature" data-section="invoices" data-permission="vendas" style="display: none;"> <i class="fas fa-file-invoice-dollar fa-fw"></i> <span>Faturas/Pag.</span> </div>
+             <!-- === NOVO ITEM DEVEDORES === -->
+             <div class="menu-item business-feature" data-section="debtors" data-permission="vendas" style="display: none;">
+                <i class="fas fa-hand-holding-usd fa-fw"></i> <span>Devedores</span>
+            </div>
+             <!-- === FIM NOVO ITEM === -->
+            <div class="menu-item business-feature" data-section="tax-report" data-permission="financeiro" style="display: none;"> <i class="fas fa-receipt fa-fw"></i> <span>Relatório Fiscal</span> </div>
+            <!-- Configurações com data-permission -->
+            <div class="menu-item" data-section="settings" data-permission="leitura"> <i class="fas fa-cog fa-fw"></i> <span>Configurações</span> </div>
+        </div>
+        <div class="sidebar-footer">
+            <div class="sidebar-footer-actions">
+                <button id="openEconomyCalculatorBtn" class="footer-action-btn" title="Calculadora de Economia"> <i class="fas fa-calculator"></i> </button>
+                <button id="quickViewNotesBtn" class="footer-action-btn" title="Notas Rápidas"> <i class="fas fa-bolt"></i> </button>
+                <button id="valueToggle" class="footer-action-btn value-toggle-btn" title="Ocultar/Mostrar valores"> <i class="fas fa-eye fa-fw"></i> </button>
+                <button id="themeToggle" class="footer-action-btn theme-toggle" title="Mudar tema"> <i class="fas fa-sun fa-fw theme-icon-sun"></i> <i class="fas fa-moon fa-fw theme-icon-moon" style="display:none;"></i> </button>
+            </div>
+            <!-- Informações do usuário serão preenchidas pelo JS -->
+            <div class="user-profile">
+                <div class="user-avatar"><i class="fas fa-user"></i></div>
+                <div>
+                    <div class="user-name">Carregando...</div>
+                    <div class="user-email">...</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <button class="menu-toggle"> <i class="fas fa-bars"></i> </button>
+            <h1 class="page-title">Dashboard</h1> <!-- Título atualizado pelo JS -->
+        </header>
+
+        <!-- === SEÇÕES DE CONTEÚDO === -->
+
+        <!-- Dashboard (data-permission="leitura") -->
+        <section class="content-section active" id="dashboard-section">
+            <div class="dashboard-grid">
+                <div class="card balance-card pix"> <div class="card-header"> <div class="card-title">Saldo Pix</div> <i class="fas fa-qrcode"></i> </div> <div class="card-body"><div class="card-value" id="remainingBalancePix"><span class="monetary-value">R$ 0,00</span></div></div> <div class="card-footer"> <i class="fas fa-info-circle"></i> <span>Saldo p/ transferências</span> </div> </div>
+                <div class="card balance-card cash"> <div class="card-header"> <div class="card-title">Em Cédulas</div> <i class="fas fa-money-bill-wave"></i> </div> <div class="card-body"><div class="card-value" id="remainingBalanceCash"><span class="monetary-value">R$ 0,00</span></div></div> <div class="card-footer"> <i class="fas fa-info-circle"></i> <span>Dinheiro físico</span> </div> </div>
+                <div class="card balance-card card-balance"> <div class="card-header"> <div class="card-title">Conta/Cartão</div> <i class="fas fa-credit-card"></i> </div> <div class="card-body"><div class="card-value" id="remainingBalanceCard"><span class="monetary-value">R$ 0,00</span></div></div> <div class="card-footer"> <i class="fas fa-info-circle"></i> <span>Saldo conta/débito</span> </div> </div>
+             </div>
+             <div id="budgetSummaryCard" class="card budget-summary-card" style="display: none;">
+                 <div class="card-header"> <div class="card-title"><i class="fas fa-wallet me-2"></i> Orçamento Mensal</div> </div>
+                 <div class="card-body"> <div class="budget-details mb-2"> <span>Gasto:</span> <strong id="budgetSpentDisplay"><span class="monetary-value">R$ 0,00</span></strong> <span> de </span> <strong id="budgetAmountDisplay"><span class="monetary-value">R$ 0,00</span></strong> </div> <div id="budgetProgress" class="progress-container budget-progress"> <div id="budgetProgressBar" class="progress-bar" style="width: 0%;" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div> </div> </div>
+             </div>
+             <div class="card"> <div class="card-header"> <div class="card-title">Resumo das Metas</div> <button id="viewAllGoalsBtn" class="btn btn-sm btn-outline" data-action-permission="leitura"> Ver Todas </button> </div> <div class="card-body"> <div class="goals-summary"> <!-- Conteúdo JS --> </div> </div> <div class="card-footer"> <button class="btn btn-sm btn-primary" id="addGoalBtnDashboard" data-action-permission="leitura"> <i class="fas fa-plus"></i> Nova Meta </button> </div> </div>
+             <div class="card"> <div class="card-header"> <div class="card-title">Próximos Pagamentos</div> <button id="viewAllScheduledBtn" class="btn btn-sm btn-outline" data-action-permission="vendas"> Ver Todos </button> </div> <div class="card-body"> <div class="upcoming-bills-list" id="upcomingBills"> <!-- Conteúdo JS --> </div> </div> <div class="card-footer"> <button id="addScheduledPaymentBtn" class="btn btn-sm btn-primary" data-action-permission="vendas"> <i class="fas fa-plus"></i> Agendar </button> </div> </div>
+             <div class="card"> <div class="card-header"> <div class="card-title">Transações Recentes</div> <button id="viewAllTransactionsBtn" class="btn btn-sm btn-outline" data-action-permission="leitura"> Ver Todas </button> </div> <div class="card-body"> <div class="transaction-history" id="transactionHistory"> <!-- Conteúdo JS --> </div> </div> <div id="emptyState" class="empty-state info" style="display: none; padding: 2rem;"> <i class="fas fa-wallet fa-2x mb-3"></i> <h3>Nenhuma transação</h3> <p>Adicione sua primeira!</p> </div> </div>
+             <div class="charts-row">
+                <div class="card chart-card"> <h3 class="chart-title">Gastos por Categoria</h3> <div class="chart-container"> <canvas id="expensesChart"></canvas> </div> </div>
+                <div class="card chart-card"> <h3 class="chart-title">Receita x Despesa</h3> <div class="chart-container"> <canvas id="incomeVsExpensesChart"></canvas> </div> </div>
+                <div class="card chart-card"> <h3 class="chart-title">Uso por Método (Desp)</h3> <div class="chart-container"> <canvas id="paymentMethodsChart"></canvas> </div> </div>
+             </div>
+        </section>
+
+        <!-- Transações (data-permission="leitura") -->
+        <section class="content-section" id="transactions-section">
+             <div class="card">
+                 <div class="card-header filters">
+                     <h2 class="card-title me-auto">Todas as Transações</h2>
+                     <div class="filter-group"> <select id="filterType2" class="form-select form-select-sm"> <option value="all">Tipo</option> <option value="expense">Despesas</option> <option value="income">Receitas</option> </select> </div>
+                     <div class="filter-group"> <select id="filterCategory2" class="form-select form-select-sm"> <option value="all">Categoria</option> </select> </div>
+                     <div class="filter-group"> <select id="filterPayment2" class="form-select form-select-sm"> <option value="all">Método</option> <option value="pix">Pix</option> <option value="cash">Dinheiro</option> <option value="card">Conta/Cartão</option> </select> </div>
+                     <div class="filter-group pro-feature" style="display: none;"> <input type="text" id="filterTagsInput" class="form-control form-control-sm" placeholder="Filtrar por Tags..."> </div>
+                     <div class="filter-group filter-group-search"> <input type="search" id="searchInput2" class="form-control form-control-sm" placeholder="Pesquisar..."> </div>
+                     <button id="clearFilters2" class="btn btn-sm btn-outline-secondary" title="Limpar Filtros"> <i class="fas fa-times"></i> </button>
+                     <button id="exportTransactionsCsvBtn" class="btn btn-sm btn-outline-secondary ms-2 pro-feature" title="Exportar Filtradas (CSV)" style="display: none;" data-action-permission="financeiro"> <i class="fas fa-file-csv"></i> </button>
+                 </div>
+                 <div class="card-body">
+                    <div class="transaction-list" id="allTransactions"> <!-- Lista dinâmica --> </div>
+                    <div id="emptyState2" class="empty-state info" style="display: none;"> <i class="fas fa-search fa-2x mb-3"></i> <h3>Nenhuma transação encontrada</h3> <p>Ajuste os filtros ou adicione novas transações.</p> </div>
+                </div>
+             </div>
+        </section>
+
+        <!-- Agendamentos (data-permission="vendas") -->
+        <section class="content-section" id="scheduled-section">
+             <div class="card">
+                 <div class="card-header">
+                     <h2 class="card-title">Gerenciar Agendamentos</h2>
+                     <button id="addScheduledFromListBtn" class="btn btn-sm btn-primary" data-action-permission="vendas"> <i class="fas fa-plus"></i> Novo Agendamento </button>
+                 </div>
+                 <div class="card-body">
+                    <div class="scheduled-list" id="allScheduledPaymentsList"> <!-- Lista dinâmica --> </div>
+                 </div>
+             </div>
+        </section>
+
+        <!-- Relatórios (data-permission="financeiro") -->
+        <section class="content-section" id="reports-section">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                    <h2 class="card-title mb-2 mb-md-0">Relatórios Visuais</h2>
+                    <div class="report-filters d-flex align-items-center gap-2 pro-feature" style="display: none;">
+                        <label for="reportStartDateInput" class="form-label mb-0 small">De:</label> <input type="date" id="reportStartDateInput" class="form-control form-control-sm" style="width: auto;">
+                        <label for="reportEndDateInput" class="form-label mb-0 small">Até:</label> <input type="date" id="reportEndDateInput" class="form-control form-control-sm" style="width: auto;">
+                        <button id="applyReportFilterBtn" class="btn btn-sm btn-primary" title="Aplicar Filtro" data-action-permission="financeiro"><i class="fas fa-filter"></i></button>
+                        <button id="exportReportCsvBtn" class="btn btn-sm btn-outline-secondary ms-2 pro-feature" title="Exportar Relatório (CSV)" style="display: none;" data-action-permission="admin"> <i class="fas fa-file-csv"></i> Exportar </button>
+                    </div>
+                </div>
+                 <div class="card-body">
+                     <div class="charts-row">
+                         <div class="card chart-card"> <h3 class="chart-title">Gastos por Categoria</h3> <div class="chart-container"><canvas id="expensesChart2"></canvas></div> </div>
+                         <div class="card chart-card"> <h3 class="chart-title">Receita x Despesa (Total)</h3> <div class="chart-container"><canvas id="incomeVsExpensesChart2"></canvas></div> </div>
+                     </div>
+                     <div class="charts-row">
+                         <div class="card chart-card"> <h3 class="chart-title">Uso por Método (Desp.)</h3> <div class="chart-container"><canvas id="paymentMethodsChart2"></canvas></div> </div>
+                         <div class="card chart-card"> <h3 class="chart-title">Histórico Mensal</h3> <div class="chart-container"><canvas id="monthlyHistoryChart"></canvas></div> </div>
+                     </div>
+                     <div id="cashFlowReportContainer" class="mt-4 pro-feature" style="display: none;"> <!-- Tabela Pro --> </div>
+                 </div>
+            </div>
+        </section>
+
+        <!-- Metas (data-permission="leitura") -->
+        <section class="content-section" id="goals-section">
+             <div class="card">
+                 <div class="card-header"> <h2 class="card-title">Minhas Metas</h2> <button class="btn btn-sm btn-primary" id="addGoalBtnList" data-action-permission="leitura"> <i class="fas fa-plus"></i> Nova Meta </button> </div>
+                 <div class="card-body"> <div class="goals-summary-section mb-3"> <h3 class="section-subtitle mb-2">Resumo</h3> <div class="goals-summary"> <!-- Conteúdo JS --> </div> </div> <h3 class="section-subtitle">Lista</h3> <div class="goals-container mt-2" id="goalsList"> <!-- Lista dinâmica --> </div> </div>
+             </div>
+        </section>
+
+        <!-- Notas (data-permission="leitura") -->
+        <section class="content-section" id="notes-section">
+            <div class="card">
+                <div class="card-header"> <h2 class="card-title">Notas & Tarefas</h2> <div class="d-flex align-items-center"> <button id="viewAllNotesBtn" class="btn btn-sm btn-outline me-2" title="Visualizar Todas" data-action-permission="leitura"> <i class="fas fa-list-alt"></i> <span class="d-none d-sm-inline">Todas</span> </button> <button id="addNoteBtn" class="btn btn-sm btn-primary" data-action-permission="leitura"> <i class="fas fa-plus"></i> Nova </button> </div> </div>
+                <div class="card-body"> <div class="notes-list-container" id="notesListContainer"> <!-- Lista dinâmica --> </div> <div id="notesEmptyState" class="empty-state info" style="display: none;"> <i class="fas fa-sticky-note fa-2x mb-3"></i> <h3>Nenhuma nota ou tarefa</h3> <p>Crie sua primeira!</p> <button id="createNoteFromEmptyStateBtn" class="btn btn-primary mt-3" data-action-permission="leitura"><i class="fas fa-plus"></i> Criar</button> </div> </div>
+            </div>
+        </section>
+
+        <!-- Recorrências (Pro) (data-permission="financeiro") -->
+        <section class="content-section pro-feature" id="recurring-section" style="display: none;">
+            <div class="card"> <div class="card-header d-flex justify-content-between align-items-center"> <h2 class="card-title mb-0">Transações Recorrentes</h2> <button id="addRecurringBtn" class="btn btn-sm btn-primary pro-feature" data-action-permission="financeiro"> <i class="fas fa-plus"></i> Nova Recorrência </button> </div> <div class="card-body"> <div id="recurringListContainer"> <!-- Lista dinâmica --> </div> </div> </div>
+        </section>
+
+        <!-- Faturamento (Business) (data-permission="vendas") -->
+        <section class="content-section business-feature" id="invoices-section" style="display: none;">
+             <div class="card"> <div class="card-header d-flex justify-content-between align-items-center"> <h2 class="card-title mb-0">Faturas & Pagamentos</h2> <button id="addInvoiceBtn" class="btn btn-sm btn-primary business-feature" data-action-permission="vendas"> <i class="fas fa-plus"></i> Nova Fatura/Pag. </button> </div> <div class="card-body"> <div id="invoiceListContainer"> <!-- Lista dinâmica --> </div> </div> </div>
+        </section>
+
+        <!-- === NOVA SEÇÃO DEVEDORES (Business) === -->
+        <section class="content-section business-feature" id="debtors-section" style="display: none;">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="card-title mb-0">Gerenciar Devedores</h2>
+                    <button id="addDebtorBtn" class="btn btn-sm btn-primary business-feature" data-action-permission="vendas">
+                        <i class="fas fa-plus"></i> Novo Devedor
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Container para a lista de cards de devedores -->
+                    <div class="row g-3" id="debtorListContainer">
+                        <!-- Cards de Devedores serão inseridos aqui pelo JS -->
+                        <p class="text-muted text-center p-3 col-12">Nenhum devedor cadastrado.</p> <!-- Mensagem inicial -->
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- === FIM NOVA SEÇÃO DEVEDORES === -->
+
+
+        <!-- Relatório Fiscal (Business) (data-permission="financeiro") -->
+        <section class="content-section business-feature" id="tax-report-section" style="display: none;">
+             <div class="card"> <div class="card-header d-flex justify-content-between align-items-center flex-wrap"> <h2 class="card-title mb-2 mb-md-0">Relatório Fiscal</h2> <div class="report-filters d-flex align-items-center gap-2 business-feature"> <label for="taxReportStartDate" class="form-label mb-0 small">De:</label> <input type="date" id="taxReportStartDate" class="form-control form-control-sm" style="width: auto;"> <label for="taxReportEndDate" class="form-label mb-0 small">Até:</label> <input type="date" id="taxReportEndDate" class="form-control form-control-sm" style="width: auto;"> <button id="generateTaxReportBtn" class="btn btn-sm btn-primary" title="Gerar Relatório Fiscal" data-action-permission="financeiro"> <i class="fas fa-cogs"></i> Gerar </button> </div> </div> <div class="card-body"> <div id="taxReportContainer"> <p class="text-muted text-center p-3">Selecione o período acima e clique em Gerar.</p> </div> </div> </div>
+        </section>
+
+
+        <!-- Configurações (data-permission="leitura") -->
+        <section class="content-section" id="settings-section">
+             <div class="card"> <h2 class="card-title" style="padding: 1.5rem 1.5rem 0 1.5rem;">Configurações</h2> <div class="card-body"> <div class="settings-grid">
+                         <!-- Bloco Saldos -->
+                         <div class="card settings-block">
+                            <div class="card-header"><h3 class="card-title"><i class="fas fa-wallet me-2"></i> Saldos</h3></div>
+                            <div class="card-body">
+                                <p class="text-muted small mb-3">Ajuste saldos ou defina o valor inicial.</p>
+                                <div class="balance-methods">
+                                    <div class="balance-method"> <div class="balance-method-icon pix"><i class="fas fa-qrcode"></i></div> <div class="balance-method-details"> <div class="balance-method-name">Pix</div> <div class="balance-method-amount" id="pixBalanceDisplay"><span class="monetary-value">R$ 0,00</span></div> </div> <div class="balance-method-actions"> <button class="btn btn-sm btn-success balance-adjust" data-method="pix" data-amount="100" title="Adicionar 100 ao Saldo Pix (Admin)" data-action-permission="admin"><i class="fas fa-plus"></i></button> <button class="btn btn-sm btn-danger balance-adjust" data-method="pix" data-amount="-100" title="Subtrair 100 do Saldo Pix (Admin)" data-action-permission="admin"><i class="fas fa-minus"></i></button> </div> <input type="number" id="initialBalancePix" class="balance-method-input form-control form-control-sm monetary-input" placeholder="0.00" step="0.01" title="Definir Saldo Pix Inicial (Admin)" data-action-permission="admin"> </div>
+                                    <div class="balance-method"> <div class="balance-method-icon cash"><i class="fas fa-money-bill-wave"></i></div> <div class="balance-method-details"> <div class="balance-method-name">Dinheiro</div> <div class="balance-method-amount" id="cashBalanceDisplay"><span class="monetary-value">R$ 0,00</span></div> </div> <div class="balance-method-actions"> <button class="btn btn-sm btn-success balance-adjust" data-method="cash" data-amount="100" title="Adicionar 100 ao Saldo Dinheiro (Admin)" data-action-permission="admin"><i class="fas fa-plus"></i></button> <button class="btn btn-sm btn-danger balance-adjust" data-method="cash" data-amount="-100" title="Subtrair 100 do Saldo Dinheiro (Admin)" data-action-permission="admin"><i class="fas fa-minus"></i></button> </div> <input type="number" id="initialBalanceCash" class="balance-method-input form-control form-control-sm monetary-input" placeholder="0.00" step="0.01" title="Definir Saldo Dinheiro Inicial (Admin)" data-action-permission="admin"> </div>
+                                    <div class="balance-method"> <div class="balance-method-icon card"><i class="fas fa-credit-card"></i></div> <div class="balance-method-details"> <div class="balance-method-name">Conta/C.</div> <div class="balance-method-amount" id="cardBalanceDisplay"><span class="monetary-value">R$ 0,00</span></div> </div> <div class="balance-method-actions"> <button class="btn btn-sm btn-success balance-adjust" data-method="card" data-amount="100" title="Adicionar 100 ao Saldo Conta/Cartão (Admin)" data-action-permission="admin"><i class="fas fa-plus"></i></button> <button class="btn btn-sm btn-danger balance-adjust" data-method="card" data-amount="-100" title="Subtrair 100 do Saldo Conta/Cartão (Admin)" data-action-permission="admin"><i class="fas fa-minus"></i></button> </div> <input type="number" id="initialBalanceCard" class="balance-method-input form-control form-control-sm monetary-input" placeholder="0.00" step="0.01" title="Definir Saldo Conta/Cartão Inicial (Admin)" data-action-permission="admin"> </div>
+                                </div>
+                                <p class="text-muted small mt-2">Use os botões +/- para ajustes rápidos ou defina o saldo inicial total no campo e clique em salvar.</p>
+                            </div>
+                            <div class="card-footer"> <button id="saveInitialBalances" class="btn btn-primary btn-sm" data-action-permission="admin"> <i class="fas fa-save"></i> Salvar Saldos Iniciais </button> </div>
+                         </div>
+                         <!-- Bloco Orçamento -->
+                         <div class="card settings-block">
+                             <div class="card-header"><h3 class="card-title"><i class="fas fa-calculator-alt me-2"></i> Orçamento</h3></div>
+                             <div class="card-body">
+                                <p class="text-muted small mb-3">Defina um limite de gastos mensal.</p>
+                                <div class="form-group"> <label for="monthlyBudgetInput">Limite Mensal (R$)</label> <input type="number" id="monthlyBudgetInput" class="form-control form-control-sm monetary-input" placeholder="0,00" step="0.01" min="0" title="Defina o limite mensal de gastos (0 para desativar)."> </div>
+                                <small class="text-muted pro-feature" style="display: none;">Orçamentos por categoria disponíveis no plano Pro.</small>
+                             </div>
+                             <div class="card-footer"> <button id="saveBudgetBtn" class="btn btn-primary btn-sm" data-action-permission="financeiro"> <i class="fas fa-save"></i> Salvar Orçamento </button> </div>
+                         </div>
+                         <!-- Bloco Perfil/Aparência -->
+                         <div class="card settings-block">
+                             <div class="card-header"><h3 class="card-title"><i class="fas fa-user-cog me-2"></i> Perfil & Aparência</h3></div>
+                             <div class="card-body settings-form">
+                                <div class="form-group"> <label for="userName">Nome</label> <input type="text" id="userName" class="form-control form-control-sm" placeholder="Seu Nome"> </div>
+                                <div class="form-group"> <label for="userEmail">Email</label> <input type="email" id="userEmail" class="form-control form-control-sm" placeholder="email@exemplo.com"> </div>
+                                <div class="form-group"> <label for="currency">Moeda</label> <select id="currency" class="form-select form-select-sm"> <option value="BRL">Real (R$)</option> <option value="USD">Dólar ($)</option> <option value="EUR">Euro (€)</option> </select> </div>
+                                <h4 class="mt-3 mb-2"><i class="fas fa-palette me-1"></i> Tema</h4>
+                                <div class="theme-options d-flex justify-content-between align-items-center mb-3">
+                                    <span class="small text-muted">Modo:</span>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-secondary theme-mode-btn" data-mode="light"><i class="fas fa-sun"></i> Claro</button>
+                                        <button class="btn btn-outline-secondary theme-mode-btn" data-mode="dark"><i class="fas fa-moon"></i> Escuro</button>
+                                        <button class="btn btn-outline-secondary theme-mode-btn" data-mode="auto"><i class="fas fa-desktop"></i> Sistema</button>
+                                    </div>
+                                </div>
+                                <div class="theme-options d-flex justify-content-between align-items-center">
+                                    <span class="small text-muted">Cor:</span>
+                                     <div class="theme-colors">
+                                        <div class="theme-color-option" data-color="default" title="Padrão Azul"></div>
+                                        <div class="theme-color-option" data-color="green" title="Verde"></div>
+                                        <div class="theme-color-option" data-color="purple" title="Roxo"></div>
+                                        <div class="theme-color-option" data-color="orange" title="Laranja"></div>
+                                        <div class="theme-color-option" data-color="teal" title="Verde Água"></div>
+                                        <div class="theme-color-option" data-color="pink" title="Rosa"></div>
+                                    </div>
+                                </div>
+                             </div>
+                             <div class="card-footer"> <button id="saveUserSettings" class="btn btn-primary btn-sm" data-action-permission="admin"> <i class="fas fa-save"></i> Salvar Preferências </button> </div>
+                         </div>
+                         <!-- Bloco Categorias (Pro) -->
+                         <div class="card settings-block pro-feature" id="customCategoriesSettings" style="display: none;">
+                             <div class="card-header"><h3 class="card-title"><i class="fas fa-tags me-2"></i> Categorias</h3></div>
+                             <div class="card-body">
+                                 <p class="text-muted small mb-3">Gerencie suas categorias e títulos personalizados em um editor avançado.</p>
+                                 <button id="openCategoryEditorBtn" class="btn btn-primary" data-action-permission="financeiro">
+                                     <i class="fas fa-edit me-2"></i> Gerenciar Categorias
+                                 </button>
+                             </div>
+                         </div>
+                          <!-- Bloco Clientes (Business) -->
+                          <div class="card settings-block business-feature" id="clientManagementSettings" style="display: none;">
+                              <div class="card-header"><h3 class="card-title"><i class="fas fa-user-tie me-2"></i> Clientes</h3></div>
+                              <div class="card-body">
+                                  <p class="text-muted small mb-3">Gerencie seus clientes.</p>
+                                  <div id="clientListContainer" class="list-group mb-3" style="max-height: 150px; overflow-y: auto;"></div>
+                                  <div class="input-group input-group-sm">
+                                      <input type="text" id="newClientNameInput" class="form-control" placeholder="Nome do Novo Cliente">
+                                      <button id="addClientBtn" class="btn btn-outline-primary" data-action-permission="vendas"><i class="fas fa-plus"></i></button>
+                                  </div>
+                              </div>
+                          </div>
+                          <!-- Bloco Projetos (Business) -->
+                          <div class="card settings-block business-feature" id="projectManagementSettings" style="display: none;">
+                              <div class="card-header"><h3 class="card-title"><i class="fas fa-briefcase me-2"></i> Projetos</h3></div>
+                              <div class="card-body">
+                                  <p class="text-muted small mb-3">Gerencie seus projetos.</p>
+                                  <div id="projectListContainer" class="list-group mb-3" style="max-height: 150px; overflow-y: auto;"></div>
+                                  <div class="input-group input-group-sm">
+                                      <input type="text" id="newProjectNameInput" class="form-control" placeholder="Nome do Novo Projeto">
+                                      <button id="addProjectBtn" class="btn btn-outline-primary" data-action-permission="vendas"><i class="fas fa-plus"></i></button>
+                                  </div>
+                              </div>
+                          </div>
+                          <!-- Bloco Funcionários (Business) -->
+                          <div class="card settings-block business-feature" id="employeeManagementSettings" style="display: none;">
+                              <div class="card-header"><h3 class="card-title"><i class="fas fa-users me-2"></i> Funcionários</h3></div>
+                              <div class="card-body">
+                                  <p class="text-muted small mb-3">Gerencie seus funcionários.</p>
+                                  <div id="employeeListContainer" class="list-group mb-3" style="max-height: 150px; overflow-y: auto;">
+                                      <p class="text-muted small p-2 text-center">Nenhum funcionário cadastrado.</p>
+                                  </div>
+                                  <div class="input-group input-group-sm">
+                                      <input type="text" id="newEmployeeNameInput" class="form-control" placeholder="Nome do Novo Funcionário">
+                                      <button id="addEmployeeBtn" class="btn btn-outline-primary" data-action-permission="admin"><i class="fas fa-plus"></i></button>
+                                  </div>
+                              </div>
+                          </div>
+                          <!-- Bloco Empresa & Fatura (Business) -->
+                          <div class="card settings-block business-feature" id="companySettingsBlock" style="display: none;">
+                              <div class="card-header"><h3 class="card-title"><i class="fas fa-building me-2"></i> Empresa & Fatura</h3></div>
+                              <div class="card-body settings-form">
+                                  <p class="text-muted small mb-3">Informações exibidas nas faturas.</p>
+                                  <div class="row g-3">
+                                      <div class="col-md-6 form-group">
+                                          <label for="companyNameInput">Nome da Empresa *</label>
+                                          <input type="text" id="companyNameInput" class="form-control form-control-sm" placeholder="Nome da Sua Empresa LTDA">
+                                      </div>
+                                      <div class="col-md-6 form-group">
+                                          <label for="companyTaxIdInput">CNPJ / CPF</label>
+                                          <input type="text" id="companyTaxIdInput" class="form-control form-control-sm" placeholder="XX.XXX.XXX/0001-XX">
+                                      </div>
+                                      <div class="col-12 form-group">
+                                          <label for="companyAddressInput">Endereço Completo</label>
+                                          <input type="text" id="companyAddressInput" class="form-control form-control-sm" placeholder="Rua Exemplo, 123, Bairro, Cidade - UF, CEP">
+                                      </div>
+                                      <div class="col-md-6 form-group">
+                                          <label for="companyPhoneInput">Telefone</label>
+                                          <input type="tel" id="companyPhoneInput" class="form-control form-control-sm" placeholder="(XX) XXXXX-XXXX">
+                                      </div>
+                                      <div class="col-md-6 form-group">
+                                          <label for="companyEmailInput">Email de Contato</label>
+                                          <input type="email" id="companyEmailInput" class="form-control form-control-sm" placeholder="contato@suaempresa.com">
+                                      </div>
+                                       <div class="col-12 form-group">
+                                          <label for="invoiceLogoUrlInput">URL da Logo (Opcional)</label>
+                                          <input type="url" id="invoiceLogoUrlInput" class="form-control form-control-sm" placeholder="https://.../logo.png">
+                                           <small class="text-muted">Cole o link direto para a imagem da sua logo.</small>
+                                      </div>
+                                      <div class="col-12 form-group">
+                                          <label for="invoiceNotesInput">Observações Padrão da Fatura</label>
+                                          <textarea id="invoiceNotesInput" class="form-control form-control-sm" rows="3" placeholder="Ex: Formas de pagamento, agradecimento, termos..."></textarea>
+                                      </div>
+                                  </div>
+                                   <small class="text-muted d-block mt-2">* Campo obrigatório.</small>
+                              </div>
+                              <div class="card-footer">
+                                  <button id="saveCompanySettingsBtn" class="btn btn-primary btn-sm" data-action-permission="admin">
+                                      <i class="fas fa-save"></i> Salvar Informações
+                                  </button>
+                              </div>
+                          </div>
+                          <!-- Bloco Backup/Dados -->
+                         <div class="card settings-block">
+                             <div class="card-header"><h3 class="card-title"><i class="fas fa-database me-2"></i> Backup & Dados</h3></div>
+                             <div class="card-body">
+                                 <p class="text-muted small">Exporte seus dados como JSON ou importe um backup.</p>
+                                 <div class="data-actions mt-3 d-flex gap-2 flex-wrap">
+                                     <button id="exportDataBtn" class="btn btn-sm btn-outline-secondary" data-action-permission="admin"> <i class="fas fa-download"></i> Exportar JSON</button>
+                                     <button id="importDataBtn" class="btn btn-sm btn-outline-danger" data-action-permission="admin"> <i class="fas fa-upload"></i> Importar JSON</button>
+                                     <button id="importCsvBtn" class="btn btn-sm btn-outline-success pro-feature" style="display: none;" data-action-permission="admin"> <i class="fas fa-file-csv"></i> Importar CSV</button>
+                                 </div>
+                                 <input type="file" id="importDataInput" accept=".json" style="display: none;">
+                                 <input type="file" id="importCsvInput" accept=".csv, text/csv" style="display: none;">
+                                 <p class="text-muted small mt-3">Importar substituirá todos os dados atuais.</p>
+                             </div>
+                         </div>
+
+                        <!-- Bloco Gerenciamento de Usuários (Business) -->
+                        <div class="card settings-block business-feature" id="userManagementSettings" style="display: none;">
+                            <div class="card-header"><h3 class="card-title"><i class="fas fa-users-cog me-2"></i> Usuários da Empresa</h3></div>
+                            <div class="card-body">
+                                <p class="text-muted small mb-3">Gerencie quem pode acessar esta conta (Simulado).</p>
+                                <div id="userListContainer" class="list-group mb-3" style="max-height: 200px; overflow-y: auto;">
+                                    <p class="text-muted small p-2 text-center">Carregando usuários...</p>
+                                </div>
+
+                            </div>
+                            <div class="card-footer">
+                                <button id="addUserBtn" class="btn btn-sm btn-primary" data-action-permission="admin">
+                                    <i class="fas fa-user-plus"></i> Novo Usuário (Simulado)
+                                </button>
+                            </div>
+                        </div>
+
+                     </div> <!-- Fim settings-grid -->
+                 </div> <!-- Fim card-body -->
+             </div> <!-- Fim card -->
+        </section>
+    </main>
+
+    <!-- FAB (Floating Action Button) -->
+    <button class="floating-action-btn" id="addTransactionBtn" title="Nova Transação" data-action-permission="leitura"> <i class="fas fa-plus"></i> </button>
+
+    <!-- ########## MODALS ########### -->
+
+    <!-- Modal Transação (Add) -->
+    <div class="modal-overlay" id="transactionModal">
+        <div class="modal">
+            <div class="modal-header"> <h3 class="modal-title">Adicionar Transação</h3> <button class="modal-close" aria-label="Fechar">×</button> </div>
+            <div class="modal-body">
+                <form id="transactionModalForm" novalidate>
+                    <div class="form-row"> <div class="form-group"> <label for="modalDate">Data *</label> <input type="date" id="modalDate" class="form-control" required> </div> <div class="form-group"> <label for="modalType">Tipo *</label> <select id="modalType" class="form-select" required> <option value="expense" selected>Despesa</option> <option value="income">Receita</option> </select> </div> </div>
+                    <div class="form-group"> <label for="modalItem">Descrição Curta *</label> <input type="text" id="modalItem" class="form-control" placeholder="Ex: Supermercado" required> </div>
+                    <div class="form-group"> <label for="modalDescription">Descrição Adicional</label> <textarea id="modalDescription" class="form-control" rows="2" placeholder="Ex: Compra mensal"></textarea> </div>
+                    <div class="form-row"> <div class="form-group"> <label for="modalAmount">Valor *</label> <input type="number" id="modalAmount" class="form-control monetary-input" placeholder="0,00" step="0.01" min="0.01" required> </div> <div class="form-group"> <label for="modalPaymentMethod">Modalidade *</label> <select id="modalPaymentMethod" class="form-select" required> <option value="" disabled selected>--Selecione--</option> <option value="pix">Pix</option> <option value="cash">Dinheiro</option> <option value="card">Conta/Cartão</option> </select> </div> </div>
+                    <div class="form-group"> <label for="modalCategory">Categoria *</label> <select id="modalCategory" class="form-select" required> <option value="" disabled selected>--Selecione--</option> </select> </div>
+                    <div class="form-group pro-feature pro-field" style="display: none;"> <label for="modalTagsInput">Tags (vírgula)</label> <input type="text" id="modalTagsInput" class="form-control form-control-sm" placeholder="Ex: trabalho, urgente"> </div>
+                    <div class="form-group pro-feature pro-field" style="display: none;"> <label>Comprovante</label> <div class="attachment-area"> <button type="button" class="btn btn-sm btn-outline-secondary" id="modalAttachmentTrigger"><i class="fas fa-paperclip"></i> Add</button> <input type="file" id="modalAttachmentInput" accept="image/*" style="display: none;"> <div class="attachment-preview-container mt-2" > <img id="modalAttachmentPreview" alt="Preview" style="display: none; max-height: 50px; max-width: 100px; margin-right: 10px; vertical-align: middle;"> <span id="modalAttachmentFilename" class="text-muted small" style="display:none; vertical-align: middle;"></span> <button type="button" class="btn btn-sm btn-outline-danger ms-2" id="modalRemoveAttachmentBtn" style="display: none;" title="Remover"><i class="fas fa-times"></i></button> </div> </div> </div>
+                    <div class="form-row business-feature business-field" style="display: none;"> <div class="form-group"> <label for="modalClientSelect">Cliente</label> <select id="modalClientSelect" class="form-select form-select-sm"><option value="">--</option></select> </div> <div class="form-group"> <label for="modalProjectSelect">Projeto</label> <select id="modalProjectSelect" class="form-select form-select-sm"><option value="">--</option></select> </div> </div>
+                     <!-- Adicione o select de funcionário se quiser associar tx geral a funcionário -->
+                     <!-- <div class="form-group business-feature business-field" style="display: none;"> <label for="modalEmployeeSelect">Funcionário</label> <select id="modalEmployeeSelect" class="form-select form-select-sm"><option value="">--</option></select> </div> -->
+                    <div class="form-check business-feature business-field" style="display: none;"> <input class="form-check-input" type="checkbox" id="modalDeductible"> <label class="form-check-label" for="modalDeductible">Dedutível?</label> </div>
+                    <input type="hidden" id="modalOriginatingBillIdInput"> <small class="text-muted mt-3 d-block">* Obrigatório</small>
+                    <input type="hidden" id="modalAttachmentDataUrlHidden">
+                </form>
+            </div>
+            <div class="modal-footer"> <button type="button" class="btn btn-outline modal-close" id="cancelTransaction">Cancelar</button> <button type="submit" form="transactionModalForm" class="btn btn-primary" id="saveTransaction" data-action-permission="leitura">Salvar</button> </div>
+        </div>
+    </div>
+
+    <!-- Modal Edição -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <div class="modal-header"> <h3 class="modal-title">Editar Transação</h3> <button class="modal-close" aria-label="Fechar">×</button> </div>
+            <div class="modal-body">
+                <form id="editForm" novalidate>
+                    <input type="hidden" id="editTransactionId">
+                    <div class="form-row"> <div class="form-group"> <label for="editDate">Data *</label> <input type="date" id="editDate" class="form-control" required> </div> <div class="form-group"> <label for="editType">Tipo *</label> <select id="editType" class="form-select" required><option value="expense">Despesa</option><option value="income">Receita</option></select> </div> </div>
+                    <div class="form-group"> <label for="editItem">Descrição *</label> <input type="text" id="editItem" class="form-control" required> </div>
+                    <div class="form-group"> <label for="editDescription">Detalhes</label> <textarea id="editDescription" class="form-control" rows="2"></textarea> </div>
+                    <div class="form-row"> <div class="form-group"> <label for="editAmount">Valor *</label> <input type="number" id="editAmount" class="form-control monetary-input" placeholder="0,00" step="0.01" min="0.01" required> </div> <div class="form-group"> <label for="editPaymentMethod">Modalidade *</label> <select id="editPaymentMethod" class="form-select" required><option value="" disabled>--</option><option value="pix">Pix</option><option value="cash">Dinheiro</option><option value="card">Conta/Cartão</option></select> </div> </div>
+                    <div class="form-group"> <label for="editCategory">Categoria *</label> <select id="editCategory" class="form-select" required><option value="" disabled>--</option></select> </div>
+                    <div class="form-group pro-feature pro-field" style="display: none;"> <label for="editTagsInput">Tags (vírgula)</label> <input type="text" id="editTagsInput" class="form-control form-control-sm"> </div>
+                    <div class="form-group pro-feature pro-field" style="display: none;"> <label>Comprovante</label> <div class="attachment-area"> <button type="button" class="btn btn-sm btn-outline-secondary" id="editAttachmentTrigger"><i class="fas fa-paperclip"></i> Add/Alterar</button> <input type="file" id="editAttachmentInput" accept="image/*" style="display: none;"> <div class="attachment-preview-container mt-2" > <img id="editAttachmentPreview" alt="Preview" style="display: none;"> <span id="editAttachmentFilename" style="display:none;"></span> <button type="button" class="btn btn-sm btn-outline-danger ms-2" id="editRemoveAttachmentBtn" style="display: none;" title="Remover"><i class="fas fa-times"></i></button> </div> </div> </div>
+                    <div class="form-row business-feature business-field" style="display: none;"> <div class="form-group"> <label for="editClientSelect">Cliente</label> <select id="editClientSelect" class="form-select form-select-sm"><option value="">--</option></select> </div> <div class="form-group"> <label for="editProjectSelect">Projeto</label> <select id="editProjectSelect" class="form-select form-select-sm"><option value="">--</option></select> </div> </div>
+                     <!-- Adicione o select de funcionário se quiser associar tx geral a funcionário -->
+                     <!-- <div class="form-group business-feature business-field" style="display: none;"> <label for="editEmployeeSelect">Funcionário</label> <select id="editEmployeeSelect" class="form-select form-select-sm"><option value="">--</option></select> </div> -->
+                    <div class="form-check business-feature business-field" style="display: none;"> <input class="form-check-input" type="checkbox" id="editDeductible"> <label class="form-check-label" for="editDeductible">Dedutível?</label> </div>
+                    <small class="text-muted mt-3 d-block">* Obrigatório</small>
+                    <input type="hidden" id="editAttachmentDataUrlHidden">
+                </form>
+            </div>
+            <div class="modal-footer"> <button type="button" class="btn btn-outline modal-close" id="cancelEdit">Cancelar</button> <button type="submit" form="editForm" class="btn btn-primary" id="saveEdit" data-action-permission="leitura">Salvar Alterações</button> </div>
+        </div>
+    </div>
+
+    <!-- Modal Detalhes Transação -->
+    <div class="modal-overlay" id="transactionDetailModal">
+        <div class="modal">
+            <div class="modal-header"> <h3 class="modal-title">Detalhes da Transação</h3> <button class="modal-close" aria-label="Fechar">×</button> </div>
+            <div class="modal-body">
+                <div class="transaction-detail-grid">
+                    <div><strong>ID:</strong> <span id="detailId">-</span></div>
+                    <div><strong>Data:</strong> <span id="detailDate">-</span></div>
+                    <div><strong>Tipo:</strong> <span id="detailType">-</span></div>
+                    <div><strong>Valor:</strong> <span id="detailAmount">-</span></div>
+                    <div class="grid-col-span-2"><strong>Descrição:</strong> <span id="detailItem">-</span></div>
+                    <div><strong>Categoria:</strong> <span id="detailCategory">-</span></div>
+                    <div><strong>Modalidade:</strong> <span id="detailPaymentMethod">-</span></div>
+                 </div>
+                 <div class="detail-section" id="originContainer">
+                     <strong id="detailOriginLabel">Origem:</strong> <span id="detailOrigin">-</span>
+                 </div>
+                 <div class="detail-section" id="descriptionContainer">
+                     <strong>Detalhes Adicionais:</strong>
+                     <p class="text-muted mb-0" id="detailDescription">-</p>
+                 </div>
+                 <div class="detail-section pro-feature" id="tagsContainer" style="display: none;">
+                     <strong>Tags:</strong> <span id="detailTags">-</span>
+                 </div>
+                 <div class="detail-section business-feature" id="businessInfoContainer" style="display: none;">
+                     <strong>Informações Adicionais:</strong>
+                     <div class="d-flex flex-wrap gap-2 mt-1" id="detailBusinessInfo">-</div>
+                 </div>
+                 <div class="detail-section pro-feature" id="attachmentContainer" style="display: none;">
+                     <strong>Comprovante:</strong>
+                     <div id="detailAttachment" class="mt-2">-</div>
+                 </div>
+            </div>
+            <div class="modal-footer"> <button type="button" class="btn btn-outline modal-close">Fechar</button> </div>
+        </div>
+    </div>
+
+    <!-- Modal Agendamento -->
+     <div class="modal-overlay" id="scheduledPaymentModal"> <div class="modal"> <div class="modal-header"> <h3 class="modal-title">Agendar Pagamento/Recebimento</h3> <button class="modal-close" aria-label="Fechar">×</button> </div> <div class="modal-body"> <form id="scheduledPaymentForm" novalidate> <div class="form-group"> <label for="scheduledItem">Descrição *</label> <input type="text" id="scheduledItem" class="form-control" placeholder="Ex: Aluguel, Salário" required> </div> <div class="form-row"> <div class="form-group"> <label for="scheduledAmount">Valor *</label> <input type="number" id="scheduledAmount" class="form-control monetary-input" placeholder="0,00" step="0.01" min="0.01" required> </div> <div class="form-group"> <label for="scheduledDate">Data Venc./Pag. *</label> <input type="date" id="scheduledDate" class="form-control" required> </div> </div> <div class="form-group"> <label for="scheduledCategory">Categoria *</label> <select id="scheduledCategory" class="form-select" required> </select> </div> <div class="form-group"> <label for="scheduledPaymentMethod">Pagar/Receber Usando *</label> <select id="scheduledPaymentMethod" class="form-select" required> <option value="" disabled selected>--Selecione--</option> <option value="pix">Pix</option> <option value="cash">Dinheiro</option> <option value="card">Conta/Cartão</option> </select> <small class="form-text text-muted" id="scheduledMethodHelp"></small> </div> <div class="form-group"> <div class="form-check"> <input class="form-check-input" type="checkbox" id="scheduledAutoDebit"> <label class="form-check-label" for="scheduledAutoDebit"> Processar Automaticamente</label> </div> <small class="form-text text-muted">Tenta criar a transação real na data agendada.</small> </div> <small class="text-muted">* Obrigatório</small> </form> </div> <div class="modal-footer"> <button type="button" class="btn btn-outline modal-close">Cancelar</button> <button type="submit" form="scheduledPaymentForm" class="btn btn-primary" id="saveScheduledPayment" data-action-permission="vendas">Salvar Agendamento</button> </div> </div> </div>
+
+    <!-- Modal Aviso Agendado -->
+    <div class="modal-overlay" id="scheduledWarningModal"> <div class="modal modal-warning modal-small"> <div class="modal-header"> <h3 class="modal-title"><i class="fas fa-exclamation-triangle"></i> Aviso Processamento</h3> <button class="modal-close" aria-label="Fechar">×</button> </div> <div class="modal-body"> <p>Agendamentos marcados como pagos criam transações reais.</p> <p>Para reverter (até 24h após), exclua o <strong>agendamento</strong> correspondente, não a transação.</p> <hr><div class="form-check small"> <input type="checkbox" class="form-check-input" id="dontShowWarningAgain"> <label class="form-check-label" for="dontShowWarningAgain">Não mostrar novamente</label> </div> </div> <div class="modal-footer"> <button type="button" class="btn btn-primary modal-close" id="confirmScheduledWarning">Entendido</button> </div> </div> </div>
+
+    <!-- Modal Metas -->
+    <div class="modal-overlay" id="goalModal"> <div class="modal"> <div class="modal-header"> <h3 class="modal-title">Nova Meta</h3> <button class="modal-close" aria-label="Fechar">×</button> </div> <div class="modal-body"> <form id="goalForm" class="goal-form" novalidate> <input type="hidden" id="goalId"> <div class="form-group"> <label for="goalName">Nome da Meta *</label> <input type="text" id="goalName" class="form-control" placeholder="Ex: Viagem para a praia, Comprar Notebook" required> </div> <div class="form-row"> <div class="form-group"> <label for="goalTarget">Valor Alvo *</label> <input type="number" id="goalTarget" class="form-control monetary-input" placeholder="0,00" step="0.01" min="0.01" required> </div> <div class="form-group"> <label for="monthlyContribution">Contribuição Mensal Sugerida</label> <input type="number" id="monthlyContribution" class="form-control monetary-input" placeholder="0,00" step="0.01" min="0"> <small class="text-muted">Opcional, para referência</small></div> </div> <div class="form-row"> <div class="form-group"> <label for="goalDate">Data Alvo *</label> <input type="date" id="goalDate" class="form-control" required> </div> <div class="form-group"> <label for="goalType">Tipo *</label> <select id="goalType" class="form-select" required> <option value="" disabled selected>--Selecione o Tipo--</option> <option value="travel">Viagem</option><option value="electronics">Eletrônicos</option><option value="education">Educação</option><option value="emergency">Fundo de Emergência</option><option value="home">Casa/Reforma</option><option value="car">Carro</option><option value="debt">Quitar Dívida</option><option value="investment">Investimento</option><option value="other">Outro</option> </select> </div> </div> <div class="form-group image-upload-group"> <label for="goalImage">Imagem (Opcional)</label> <div class="image-upload-container" onclick="document.getElementById('goalImage')?.click()" title="Adicionar Imagem para a Meta"> <i class="fas fa-camera fa-2x text-muted"></i> <p class="small text-muted mb-0">Clique para adicionar</p> <input type="file" id="goalImage" style="display: none;" accept="image/*"> <div class="image-preview-wrapper"> <img id="goalImagePreview" alt="Preview Meta" style="display: none;"> <button type="button" class="remove-image-btn" style="display:none;" title="Remover Imagem">×</button> </div> </div> </div> <div class="form-group"> <label><i class="fas fa-palette"></i> Cor de Destaque</label> <div class="theme-colors justify-content-start gap-2"> <div class="theme-color-option selected" data-color="default" title="Padrão"></div> <div class="theme-color-option" data-color="green" title="Verde"></div> <div class="theme-color-option" data-color="purple" title="Roxo"></div> <div class="theme-color-option" data-color="orange" title="Laranja"></div> <div class="theme-color-option" data-color="teal" title="Verde Água"></div> <div class="theme-color-option" data-color="pink" title="Rosa"></div> </div> </div> <small class="text-muted">* Campos obrigatórios</small> </form> </div> <div class="modal-footer"> <button type="button" class="btn btn-outline modal-close" id="cancelGoal">Cancelar</button> <button type="submit" form="goalForm" class="btn btn-primary" id="saveGoal" data-action-permission="leitura">Salvar Meta</button> </div> </div> </div>
+
+    <!-- Modal Alerta -->
+    <div class="modal-overlay modal-alert-info" id="alertModal"> <div class="modal modal-small"> <div class="modal-header"> <h3 class="modal-title">Aviso</h3> <button class="modal-close" aria-label="Fechar">×</button> </div> <div class="modal-body"> <p id="alertMessage">(Mensagem de Alerta)</p> </div> <div class="modal-footer"> <button type="button" class="btn btn-primary modal-close" id="confirmAlert">OK</button> </div> </div> </div>
+
+    <!-- Modal Confirmação -->
+    <div class="modal-overlay" id="confirmModal"> <div class="modal modal-small"> <div class="modal-header"> <h3 class="modal-title">Confirmar Ação</h3> <button class="modal-close" aria-label="Fechar">×</button> </div> <div class="modal-body"> <p id="confirmMessage">(Mensagem de Confirmação)</p> </div> <div class="modal-footer"> <button type="button" class="btn btn-outline modal-close" id="cancelConfirm">Cancelar</button> <button type="button" class="btn btn-danger" id="confirmAction">Confirmar</button> </div> </div> </div>
+
+     <!-- Modal Visualizar Todas Notas -->
+    <div class="modal-overlay" id="viewAllNotesModal"> <div class="modal modal-lg"> <div class="modal-header"> <h3 class="modal-title">Todas as Notas & Tarefas</h3> <button class="modal-close" aria-label="Fechar">×</button> </div> <div class="modal-body"> <div id="viewAllNotesList"> <!-- Conteúdo preenchido por JS --> </div> </div> <div class="modal-footer"> <button type="button" class="btn btn-outline modal-close">Fechar</button> </div> </div> </div>
+
+    <!-- Modal Notas (Add/Edit) -->
+    <div class="modal-overlay" id="noteModal"> <div class="modal"> <div class="modal-header"> <h3 class="modal-title" id="noteModalTitle">Nova Nota</h3> <button class="modal-close" aria-label="Fechar">×</button> </div> <div class="modal-body"> <form id="noteForm" novalidate> <input type="hidden" id="noteId"> <div class="form-group"> <label for="noteTypeSelect">Tipo *</label> <select id="noteTypeSelect" class="form-select form-select-sm" required> <option value="note" selected>Nota Simples</option> <option value="task">Lista de Tarefas</option> </select> </div> <div class="form-group"> <label for="noteTitle">Título (Opcional)</label> <input type="text" id="noteTitle" class="form-control"> </div> <div class="form-group"> <label for="noteContent">Conteúdo *</label> <textarea id="noteContent" class="form-control" rows="8" placeholder="Digite sua nota ou lista de tarefas aqui..." required></textarea> <small class="form-text text-muted">Para Tarefas: Inicie a linha com `- ` (pendente) ou `+ ` (concluída).</small> </div> <div class="form-row"> <div class="form-group"> <label for="noteReminderDate">Lembrete (Data)</label> <input type="date" id="noteReminderDate" class="form-control"> </div> <div class="form-group"> <label for="noteReminderTime">Hora</label> <input type="time" id="noteReminderTime" class="form-control"> </div> </div> <div class="form-group"> <label>Cor</label> <div id="noteColorOptions" class="theme-colors justify-content-start gap-2"> <div class="color-option selected" data-color="default" title="Padrão"></div> <div class="color-option" data-color="yellow" title="Amarelo"></div> <div class="color-option" data-color="blue" title="Azul"></div> <div class="color-option" data-color="green" title="Verde"></div> <div class="color-option" data-color="red" title="Vermelho"></div> <div class="color-option" data-color="purple" title="Roxo"></div> </div> </div> <small class="text-muted">* Obrigatório</small> </form> </div> <div class="modal-footer"> <button type="button" class="btn btn-outline modal-close">Cancelar</button> <button type="submit" form="noteForm" class="btn btn-primary" id="saveNoteBtn" data-action-permission="leitura">Salvar</button> </div> </div> </div>
+
+    <!-- Modal Popup Rápido Notas -->
+    <div class="modal-overlay" id="quickNotesModal"> <div class="modal modal-sm"> <div class="modal-header"> <h3 class="modal-title">Notas Rápidas</h3> <button class="modal-close" aria-label="Fechar">×</button> </div> <div class="modal-body" style="max-height: 60vh; overflow-y: auto;"> <div id="quickNotesList"> <!-- Conteúdo JS --> </div> </div> <div class="modal-footer"> <button type="button" class="btn btn-sm btn-primary" id="addNewQuickNoteBtn" data-action-permission="leitura"><i class="fas fa-plus"></i> Nova</button> <button type="button" class="btn btn-sm btn-outline modal-close">Fechar</button> </div> </div> </div>
+
+    <!-- Modal Leitor de Notas -->
+    <div class="modal-overlay modal-reader" id="noteReaderModal"> <div class="modal modal-xl"> <div class="modal-header"> <h3 class="modal-title" id="noteReaderTitle"></h3> <button class="modal-close" id="closeNoteReaderBtn" aria-label="Fechar">×</button> </div> <div class="modal-body note-reader-body"> <div id="noteReaderContent"> <!-- Conteúdo da nota formatado --> </div> </div> </div> </div>
+
+    <!-- Modal Calculadora de Economia -->
+    <div class="modal-overlay" id="economyCalculatorModal"> <div class="modal"> <div class="modal-header"> <h3 class="modal-title"><i class="fas fa-calculator me-2"></i>Calculadora de Economia</h3> <button class="modal-close" aria-label="Fechar">×</button> </div> <div class="modal-body"> <p class="text-muted small mb-3">Compare o custo por unidade de dois produtos.</p> <form id="economyCalculatorForm" novalidate> <div class="comparison-grid"> <div class="product-column"> <h4>Produto 1</h4> <div class="form-group"> <label for="comparePrice1">Preço Total*</label> <input type="number" id="comparePrice1" class="form-control monetary-input" step="0.01" min="0.01" required> </div> <div class="form-group"> <label for="compareQuantity1">Quantidade*</label> <input type="number" id="compareQuantity1" class="form-control" step="any" min="0.001" required> </div> <div class="form-group"> <label for="compareUnit1">Unidade*</label> <select id="compareUnit1" class="form-select" required><option value="g" selected>g (Grama)</option><option value="kg">kg (Quilograma)</option><option value="ml">ml (Mililitro)</option><option value="L">L (Litro)</option><option value="unidade">Unidade</option></select> </div> <div id="product1Result" class="comparison-result mt-2 small"></div> </div> <div class="product-column"> <h4>Produto 2</h4> <div class="form-group"> <label for="comparePrice2">Preço Total*</label> <input type="number" id="comparePrice2" class="form-control monetary-input" step="0.01" min="0.01" required> </div> <div class="form-group"> <label for="compareQuantity2">Quantidade*</label> <input type="number" id="compareQuantity2" class="form-control" step="any" min="0.001" required> </div> <div class="form-group"> <label for="compareUnit2">Unidade*</label> <select id="compareUnit2" class="form-select" required><option value="g">g (Grama)</option><option value="kg" selected>kg (Quilograma)</option><option value="ml">ml (Mililitro)</option><option value="L">L (Litro)</option><option value="unidade">Unidade</option></select> </div> <div id="product2Result" class="comparison-result mt-2 small"></div> </div> </div> <div id="comparisonSummary" class="comparison-summary alert alert-info mt-3" style="display: none;"> <!-- Resultado da Comparação --> </div> <small class="text-muted">* Campos obrigatórios</small> </form> </div> <div class="modal-footer"> <button type="button" class="btn btn-outline" id="clearComparisonBtn">Limpar</button> <button type="button" class="btn btn-primary" id="calculateComparisonBtn">Calcular Comparação</button> </div> </div> </div>
+
+    <!-- Modal Recorrência (Pro) -->
+    <div class="modal-overlay pro-feature" id="recurringTxModal" style="display: none;"> <div class="modal"> <div class="modal-header"> <h3 class="modal-title">Nova/Editar Recorrência</h3> <button class="modal-close" aria-label="Fechar">×</button> </div> <div class="modal-body"> <form id="recurringTxForm" novalidate> <input type="hidden" id="recurringTxId"> <div class="form-group"> <label for="recurringName">Descrição *</label> <input type="text" id="recurringName" class="form-control" placeholder="Ex: Netflix, Academia, Mesada" required> </div> <div class="form-row"> <div class="form-group"> <label for="recurringAmount">Valor *</label> <input type="number" id="recurringAmount" class="form-control monetary-input" step="0.01" min="0.01" required> </div> <div class="form-group"> <label for="recurringType">Tipo *</label> <select id="recurringType" class="form-select" required><option value="expense" selected>Despesa</option><option value="income">Receita</option></select> </div> </div> <div class="form-group"> <label for="recurringCategory">Categoria *</label> <select id="recurringCategory" class="form-select" required></select> </div> <div class="form-row"> <div class="form-group"> <label for="recurringPaymentMethod">Modalidade Padrão *</label> <select id="recurringPaymentMethod" class="form-select" required><option value="" disabled selected>--</option><option value="pix">Pix</option><option value="cash">Dinheiro</option><option value="card">Conta/Cartão</option></select> </div> <div class="form-group"> <label for="recurringFrequency">Frequência *</label> <select id="recurringFrequency" class="form-select" required><option value="monthly" selected>Mensal</option><option value="weekly">Semanal</option><option value="biweekly">Quinzenal</option> <option value="daily">Diária</option><option value="yearly">Anual</option></select> </div> </div> <div class="form-group"> <label for="recurringStartDate">Data da Primeira Ocorrência *</label> <input type="date" id="recurringStartDate" class="form-control" required> </div> <div class="form-group"> <label for="recurringEndDate">Data Final (Opcional)</label> <input type="date" id="recurringEndDate" class="form-control"> <small class="text-muted">Deixe em branco para recorrência indefinida.</small></div> <div class="form-group"> <label for="recurringTagsInput">Tags (Opcional)</label> <input type="text" id="recurringTagsInput" class="form-control form-control-sm" placeholder="Ex: assinatura, pessoal"> </div> <small>* Campos obrigatórios</small> </form> </div> <div class="modal-footer"> <button type="button" class="btn btn-outline modal-close">Cancelar</button> <button type="submit" form="recurringTxForm" class="btn btn-primary" data-action-permission="financeiro">Salvar Recorrência</button> </div> </div> </div>
+
+    <!-- Modal Import CSV (Pro) -->
+    <div class="modal-overlay pro-feature" id="csvImportModal" style="display: none;"> <div class="modal modal-lg"> <div class="modal-header"> <h3 class="modal-title">Importar Transações de CSV</h3> <button class="modal-close" aria-label="Fechar">×</button> </div> <div class="modal-body"> <p class="mb-3">Mapeie as colunas do seu CSV para os campos do sistema. As colunas Data, Descrição e Valor são obrigatórias.</p> <div id="csvMappingArea" class="mb-4 border p-3 rounded"> <!-- Área de Mapeamento --> </div> <p><strong>Pré-visualização das Primeiras Linhas:</strong></p> <div id="csvPreviewTable" class="table-responsive" style="max-height: 300px; overflow-y: auto;"> <!-- Tabela de Preview --> </div> </div> <div class="modal-footer"> <button type="button" class="btn btn-outline modal-close">Cancelar</button> <button type="button" class="btn btn-primary" id="confirmCsvImportBtn" data-action-permission="admin" disabled>Confirmar Importação</button> </div> </div> </div>
+
+    <!-- Modal Fatura/Pagamento -->
+    <div class="modal-overlay business-feature" id="invoiceModal" style="display: none;">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h3 class="modal-title">Nova Fatura / Pagamento</h3>
+                <button class="modal-close" aria-label="Fechar">×</button>
+            </div>
+            <div class="modal-body">
+                 <form id="invoiceForm" novalidate>
+                    <input type="hidden" id="invoiceId">
+                    <div class="row g-3 mb-3 align-items-center">
+                         <div class="col-md-6">
+                            <label class="form-label mb-1">Destinatário *:</label>
+                            <div class="btn-group btn-group-sm w-100 recipient-type-selector">
+                                <input type="radio" class="btn-check" name="invoiceRecipientType" id="recipientTypeClient" value="client" autocomplete="off" checked>
+                                <label class="btn btn-outline-secondary" for="recipientTypeClient"><i class="fas fa-user-tie me-1"></i> Cliente</label>
+                                <input type="radio" class="btn-check" name="invoiceRecipientType" id="recipientTypeEmployee" value="employee" autocomplete="off">
+                                <label class="btn btn-outline-secondary" for="recipientTypeEmployee"><i class="fas fa-user me-1"></i> Funcionário</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group recipient-select-group" id="clientSelectGroup">
+                                <label for="invoiceClientSelect" class="form-label visually-hidden">Cliente *</label>
+                                <select id="invoiceClientSelect" class="form-select" required> <option value="">-- Selecione Cliente --</option> </select>
+                            </div>
+                            <div class="form-group recipient-select-group" id="employeeSelectGroup" style="display: none;">
+                                 <label for="invoiceEmployeeSelect" class="form-label visually-hidden">Funcionário *</label>
+                                <select id="invoiceEmployeeSelect" class="form-select"> <option value="">-- Selecione Funcionário --</option> </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <div class="form-group"> <label for="invoiceNumber">Número Fatura/Pag. *</label> <input type="text" id="invoiceNumber" class="form-control" required> </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group"> <label for="invoiceDueDate">Data Venc./Pag. *</label> <input type="date" id="invoiceDueDate" class="form-control" required> </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group"> <label for="invoicePaymentMethod">Método Pagamento *</label> <select id="invoicePaymentMethod" class="form-select" required> <option value="" disabled selected>-- Selecione --</option> <option value="pix">Pix</option> <option value="cash">Dinheiro</option> <option value="card">Conta/Cartão</option> </select> </div>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                         <div class="col-md-6">
+                            <div class="form-group"> <label for="invoiceProjectSelect">Projeto (Opcional)</label> <select id="invoiceProjectSelect" class="form-select"> <option value="">-- Selecione Projeto --</option> </select> </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <h5>Itens Fatura/Pagamento</h5>
+                    <div id="invoiceItemsContainer" class="mb-3"> <!-- Linhas de itens --> </div>
+                    <button type="button" id="addInvoiceItemBtn" class="btn btn-sm btn-outline-secondary mb-3"> <i class="fas fa-plus"></i> Adicionar Item </button>
+                    <small class="text-muted d-block">* Campos obrigatórios</small>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline modal-close">Cancelar</button>
+                <button type="submit" form="invoiceForm" class="btn btn-primary" data-action-permission="vendas">Salvar Fatura/Pag.</button>
+            </div>
+        </div>
+    </div>
+
+     <!-- Modal Visualizador de Anexo -->
+    <div class="modal-overlay" id="attachmentViewerModal">
+        <div class="modal modal-lg">
+             <div class="modal-header">
+                 <h3 class="modal-title">Visualizar Comprovante</h3>
+                 <button class="modal-close" aria-label="Fechar">×</button>
+             </div>
+             <div class="modal-body text-center" style="max-height: 80vh; overflow-y: auto;">
+                 <img id="attachmentViewerImage" src="#" alt="Comprovante Anexado" style="max-width: 100%; height: auto; display: block; margin: auto; object-fit: contain;">
+             </div>
+             <div class="modal-footer">
+                <a id="attachmentViewerDownloadLink" href="#" download="comprovante.png" class="btn btn-outline-secondary me-auto"><i class="fas fa-download"></i> Baixar Imagem</a>
+                <button type="button" class="btn btn-outline modal-close">Fechar</button>
+             </div>
+        </div>
+    </div>
+
+    <!-- Modal Visualizar/Imprimir Fatura (Business) -->
+    <div class="modal-overlay business-feature" id="invoiceViewModal" style="display: none;">
+        <div class="modal modal-lg invoice-viewer">
+            <div class="modal-header">
+                <h3 class="modal-title">Visualizar Fatura/Pagamento</h3>
+                <button class="modal-close" aria-label="Fechar">×</button>
+            </div>
+            <div class="modal-body" id="invoiceViewContent">
+                <div class="invoice-header row mb-4">
+                    <div class="col-6">
+                        <img src="img/logo_placeholder.png" alt="Logo Empresa" style="max-height: 60px; margin-bottom: 15px; display: none;"> <br>
+                        <strong id="viewCompanyName">-</strong><br>
+                        <span id="viewCompanyAddress"></span><br>
+                        <span id="viewCompanyContact"></span><br>
+                        <span id="viewCompanyTaxId"></span>
+                    </div>
+                    <div class="col-6 text-end">
+                        <h2 id="viewDocumentTitle">FATURA</h2>
+                        <div><strong>Nº:</strong> <span id="viewInvoiceNumber">-</span></div>
+                        <div><strong>Data Emissão:</strong> <span id="viewInvoiceDate">-</span></div>
+                        <div><strong>Data Venc./Pag.:</strong> <span id="viewInvoiceDueDate">-</span></div>
+                        <div><strong>Status:</strong> <span id="viewInvoiceStatus" class="badge">-</span></div>
+                    </div>
+                </div>
+                <div class="invoice-client-info mb-4 p-3 bg-light rounded">
+                    <strong>Destinatário:</strong><br>
+                    <span id="viewClientName" class="fw-bold">-</span><br>
+                    <span id="viewClientDetailsPlaceholder" class="small text-muted"></span>
+                    <div id="viewProjectInfo" style="display: none;">
+                        <strong>Projeto:</strong> <span id="viewProjectName">-</span>
+                    </div>
+                </div>
+                <h5 class="mb-3">Itens:</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered invoice-items-table">
+                        <thead class="table-light">
+                            <tr> <th>Descrição</th> <th class="text-end" style="width: 15%;">Qtd.</th> <th class="text-end" style="width: 20%;">Preço Unit.</th> <th class="text-end" style="width: 20%;">Total Item</th> </tr>
+                        </thead>
+                        <tbody id="viewInvoiceItems">
+                            <tr><td colspan="4" class="text-center text-muted">Carregando itens...</td></tr>
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr> <td colspan="3" class="text-end fw-bold">Subtotal:</td> <td class="text-end fw-bold"><span id="viewInvoiceSubtotal">-</span></td> </tr>
+                            <tr> <td colspan="3" class="text-end fs-5 fw-bold">TOTAL:</td> <td class="text-end fs-5 fw-bold"><span id="viewInvoiceTotal">-</span></td> </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                 <div class="invoice-notes mt-4 small text-muted">
+                    <strong>Observações:</strong>
+                    <p id="viewInvoiceNotes"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                 <button type="button" class="btn btn-secondary print-invoice-btn"><i class="fas fa-print"></i> Imprimir</button>
+                 <button type="button" class="btn btn-outline modal-close">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editor de Categorias (Pro) -->
+    <div class="modal-overlay pro-feature" id="categoryEditorModal" style="display: none;">
+        <div class="modal modal-xl category-editor">
+            <div class="modal-header">
+                <h3 class="modal-title">Gerenciar Categorias</h3>
+                <div class="category-editor-filters ms-auto">
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary filter-btn active" data-filter-type="all">Todas</button>
+                        <button class="btn btn-outline-danger filter-btn" data-filter-type="expense">Despesas</button>
+                        <button class="btn btn-outline-success filter-btn" data-filter-type="income">Receitas</button>
+                    </div>
+                </div>
+                <button class="modal-close" aria-label="Fechar">×</button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted">Arraste <i class="fas fa-grip-vertical"></i> para reordenar. Edite ou exclua apenas itens personalizados. Títulos padrão (-- NOME --) não podem ser excluídos.</p>
+                <div class="category-editor-list-container">
+                    <ul id="categoryEditorList" class="list-group category-sortable-list">
+                        <li class="list-group-item text-center p-4"> <i class="fas fa-spinner fa-spin"></i> Carregando... </li>
+                    </ul>
+                </div>
+                 <hr>
+                 <div class="category-editor-add-actions row g-2 mt-2">
+                     <div class="col-md-6">
+                          <div class="input-group input-group-sm">
+                               <span class="input-group-text"><i class="fas fa-tag"></i></span>
+                               <input type="text" id="newCategoryNameEditor" class="form-control" placeholder="Nova Categoria Personalizada...">
+                               <select id="newCategoryTypeEditor" class="form-select flex-grow-0" style="width: auto;">
+                                   <option value="expense" selected>Despesa</option>
+                                   <option value="income">Receita</option>
+                               </select>
+                               <button id="addCustomCategoryEditorBtn" class="btn btn-outline-primary"><i class="fas fa-plus"></i> Add Cat.</button>
+                          </div>
+                     </div>
+                      <div class="col-md-6">
+                          <div class="input-group input-group-sm">
+                               <span class="input-group-text"><i class="fas fa-heading"></i></span>
+                               <input type="text" id="newCategoryTitleEditor" class="form-control" placeholder="Novo Título (Ex: -- PESSOAL --)">
+                               <select id="newCategoryTitleTypeEditor" class="form-select flex-grow-0" style="width: auto;">
+                                    <option value="expense" selected>Despesa</option>
+                                    <option value="income">Receita</option>
+                                </select>
+                               <button id="addCustomTitleEditorBtn" class="btn btn-outline-secondary"><i class="fas fa-plus"></i> Add Título</button>
+                          </div>
+                     </div>
+                 </div>
+            </div>
+            <div class="modal-footer">
+                 <button type="button" class="btn btn-warning me-auto" id="restoreDefaultCategoriesBtn"><i class="fas fa-undo-alt"></i> Restaurar Padrão</button>
+                 <span class="text-warning small me-auto"><i class="fas fa-exclamation-triangle"></i> Salvar aplicará as mudanças e ordem.</span>
+                 <button type="button" class="btn btn-outline modal-close">Cancelar</button>
+                 <button type="button" class="btn btn-primary" id="saveCategoryEditorChangesBtn" disabled>Salvar Alterações</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==== NOVOS MODAIS DEVEDORES ==== -->
+
+    <!-- Modal Adicionar/Editar Devedor -->
+    <div class="modal-overlay business-feature" id="debtorModal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="debtorModalTitle">Novo Devedor</h3>
+                <button class="modal-close" aria-label="Fechar">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="debtorForm" novalidate>
+                    <input type="hidden" id="debtorId">
+                    <div class="row g-3">
+                        <div class="col-md-4 text-center">
+                            <label for="debtorPhotoInput" class="form-label">Foto (Opcional)</label>
+                            <div class="debtor-photo-upload mb-2 mx-auto" style="width: 120px; height: 120px; border: 2px dashed #ccc; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; background-size: cover; background-position: center;">
+                                <i id="debtorPhotoIcon" class="fas fa-camera fa-2x text-muted"></i>
+                                <img id="debtorPhotoPreview" src="#" alt="Preview" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: none;">
+                            </div>
+                            <input type="file" id="debtorPhotoInput" accept="image/*" style="display: none;">
+                            <button type="button" id="removeDebtorPhotoBtn" class="btn btn-sm btn-outline-danger" style="display: none;" title="Remover Foto"><i class="fas fa-trash"></i></button>
+                             <input type="hidden" id="debtorPhotoUrlHidden">
+                        </div>
+                        <div class="col-md-8">
+                            <div class="form-group mb-3">
+                                <label for="debtorName">Nome *</label>
+                                <input type="text" id="debtorName" class="form-control" required>
+                            </div>
+                            <div class="form-group mb-3">
+                                <label for="debtorEmail">Email</label>
+                                <input type="email" id="debtorEmail" class="form-control">
+                            </div>
+                            <div class="form-group mb-3">
+                                <label for="debtorPhone">Telefone</label>
+                                <input type="tel" id="debtorPhone" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    <small class="text-muted d-block mt-2">* Campos obrigatórios</small>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline modal-close">Cancelar</button>
+                <button type="submit" form="debtorForm" class="btn btn-primary" data-action-permission="vendas">Salvar Devedor</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detalhes do Devedor -->
+    <div class="modal-overlay business-feature" id="debtorDetailModal" style="display: none;">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h3 class="modal-title">Detalhes do Devedor</h3>
+                 <button class="btn btn-sm btn-outline-secondary me-auto ms-3" id="viewDebtorPaymentHistoryBtn" title="Ver Histórico de Pagamentos">
+                    <i class="fas fa-history"></i> Histórico
+                </button>
+                <button class="modal-close" aria-label="Fechar">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-4">
+                    <div class="col-md-3 text-center">
+                         <img id="detailDebtorPhoto" src="img/user_placeholder.png" alt="Foto Devedor" class="img-thumbnail rounded-circle mb-2 shadow-sm" style="width: 100px; height: 100px; object-fit: cover; border: 2px solid var(--border-color)">
+                        <h5 id="detailDebtorName" class="mb-1">-</h5>
+                        <p class="text-muted small mb-1"><i class="fas fa-envelope fa-fw me-1"></i><span id="detailDebtorEmail">-</span></p>
+                        <p class="text-muted small mb-0"><i class="fas fa-phone fa-fw me-1"></i><span id="detailDebtorPhone">-</span></p>
+                    </div>
+                    <div class="col-md-9">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h4 class="mb-0">Dívidas (<span id="detailTotalOwed" class="fw-bold">R$ 0,00</span>)</h4>
+                            <button id="addDebtForDebtorBtn" class="btn btn-sm btn-success" data-action-permission="vendas">
+                                <i class="fas fa-plus"></i> Nova Dívida
+                            </button>
+                        </div>
+                         <div id="debtorDebtsList" class="list-group" style="max-height: 40vh; overflow-y: auto;">
+                            <!-- Lista de Dívidas do Devedor -->
+                            <p class="text-muted text-center p-3 list-group-item">Nenhuma dívida ativa encontrada.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+             <div class="modal-footer">
+                 <button type="button" class="btn btn-outline modal-close">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Adicionar/Editar Dívida -->
+    <div class="modal-overlay business-feature" id="debtModal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="debtModalTitle">Nova Dívida</h3>
+                <button class="modal-close" aria-label="Fechar">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="debtForm" novalidate>
+                    <input type="hidden" id="debtId">
+                    <input type="hidden" id="debtDebtorId">
+                    <div class="form-group mb-3">
+                        <label for="debtDescription">Descrição *</label>
+                        <input type="text" id="debtDescription" class="form-control" placeholder="Ex: Empréstimo pessoal, Serviço X" required>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="debtAmount">Valor Total da Dívida *</label>
+                            <input type="number" id="debtAmount" class="form-control monetary-input" step="0.01" min="0.01" required>
+                        </div>
+                         <div class="col-md-6">
+                             <label for="debtIncurredDate">Data da Dívida *</label>
+                             <input type="date" id="debtIncurredDate" class="form-control" required>
+                         </div>
+                    </div>
+                     <div class="row g-3 mb-3 align-items-center">
+                         <div class="col-md-6">
+                             <label for="debtDueDate">Prazo Final (Opcional)</label>
+                             <input type="date" id="debtDueDate" class="form-control">
+                             <small class="text-muted">Data limite para pagamento.</small>
+                         </div>
+                        <div class="col-md-6">
+                             <div class="form-check form-switch mt-3">
+                                 <input class="form-check-input" type="checkbox" id="debtIsRecurring">
+                                 <label class="form-check-label" for="debtIsRecurring">É Recorrente?</label>
+                             </div>
+                             <select id="debtRecurringFrequency" class="form-select form-select-sm mt-1" style="display: none;">
+                                 <option value="monthly">Mensal</option>
+                                 <option value="weekly">Semanal</option>
+                                 <option value="biweekly">Quinzenal</option>
+                                 <option value="yearly">Anual</option>
+                             </select>
+                         </div>
+                    </div>
+                     <div class="form-group mb-3">
+                         <label for="debtNotes">Observações</label>
+                         <textarea id="debtNotes" class="form-control" rows="2"></textarea>
+                     </div>
+                      <small class="text-muted d-block">* Campos obrigatórios</small>
+                </form>
+            </div>
+             <div class="modal-footer">
+                 <button type="button" class="btn btn-outline modal-close">Cancelar</button>
+                 <button type="submit" form="debtForm" class="btn btn-primary" data-action-permission="vendas">Salvar Dívida</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Registrar Pagamento da Dívida -->
+    <div class="modal-overlay business-feature" id="recordDebtPaymentModal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Registrar Pagamento Recebido</h3>
+                <button class="modal-close" aria-label="Fechar">×</button>
+            </div>
+            <div class="modal-body">
+                 <p><strong>Dívida:</strong> <span id="paymentDebtDescription"></span></p>
+                 <p><strong>Valor Restante:</strong> <span id="paymentDebtRemaining" class="monetary-value fw-bold text-danger"></span></p>
+                 <hr>
+                 <form id="recordDebtPaymentForm" novalidate>
+                     <input type="hidden" id="paymentDebtId">
+                     <div class="form-group mb-3">
+                         <label for="paymentAmountReceived">Valor Recebido *</label>
+                         <input type="number" id="paymentAmountReceived" class="form-control monetary-input" step="0.01" min="0.01" required>
+                     </div>
+                     <div class="form-group mb-3">
+                         <label for="paymentDateReceived">Data Recebimento *</label>
+                         <input type="date" id="paymentDateReceived" class="form-control" required>
+                     </div>
+                     <div class="form-group mb-3">
+                         <label for="paymentMethodReceived">Método de Pagamento Recebido *</label>
+                         <select id="paymentMethodReceived" class="form-select" required>
+                             <option value="" disabled selected>--Selecione--</option>
+                             <option value="pix">Pix</option>
+                             <option value="cash">Dinheiro</option>
+                             <option value="card">Transferência/Cartão</option>
+                             <option value="other">Outro</option>
+                         </select>
+                     </div>
+                     <div class="form-group mb-3">
+                         <label for="paymentNotes">Observações (Opcional)</label>
+                         <textarea id="paymentNotes" class="form-control" rows="2" placeholder="Ex: Pagamento parcial ref. Jan/23"></textarea>
+                     </div>
+                     <small class="text-muted d-block">* Campos obrigatórios</small>
+                 </form>
+            </div>
+            <div class="modal-footer">
+                 <button type="button" class="btn btn-outline modal-close">Cancelar</button>
+                 <button type="submit" form="recordDebtPaymentForm" class="btn btn-success" data-action-permission="vendas">Confirmar Recebimento</button>
+            </div>
+        </div>
+    </div>
+
+     <!-- Modal Histórico de Pagamentos do Devedor -->
+    <div class="modal-overlay business-feature" id="debtorPaymentHistoryModal" style="display: none;">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h3 class="modal-title">Histórico de Pagamentos - <span id="historyDebtorName"></span></h3>
+                <button class="modal-close" aria-label="Fechar">×</button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                <div id="debtorPaymentHistoryList">
+                    <!-- Lista de pagamentos (transações de receita) -->
+                    <p class="text-muted text-center p-3">Nenhum pagamento registrado para este devedor.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline modal-close">Fechar</button>
+            </div>
+        </div>
+    </div>
+    <!-- ==== FIM NOVOS MODAIS DEVEDORES ==== -->
+
+
+    <!-- Indicador de Loading Global -->
+    <div id="loadingIndicator" style="display: none;"> <div class="spinner"></div> </div>
+
+     <!-- ========= Popup Notification Container ========= -->
+    <div id="popup-container" class="popup-container">
+        <!-- Popups serão adicionados aqui pelo JavaScript -->
+    </div>
+    <!-- ============================================== -->
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script> <!-- Necessário para Editor de Categorias -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script type="module" src="js/app-base.js"></script> <!-- Carrega Base primeiro -->
+    <!-- app-pro.js e app-business.js são importados dentro de app-base.js -->
+
+</body>
+</html>
